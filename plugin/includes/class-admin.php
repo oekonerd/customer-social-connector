@@ -36,6 +36,8 @@ class CSC_Admin
                 'csc_meta_app_secret'  => '',
                 'csc_meta_api_version' => 'v19.0',
                 'csc_encryption_key'   => '',
+                'csc_github_repo'      => 'oekonerd/customer-social-connector',
+                'csc_github_token'     => '',
             ],
         ]);
 
@@ -50,6 +52,8 @@ class CSC_Admin
         self::add_field('csc_meta_app_secret', 'Meta App Secret', 'password');
         self::add_field('csc_meta_api_version', 'Meta API Version');
         self::add_field('csc_encryption_key', 'Encryption Key (optional)', 'password');
+        self::add_field('csc_github_repo', 'GitHub Repository (owner/repo)');
+        self::add_field('csc_github_token', 'GitHub Token (for updates)', 'password');
     }
 
     private static function add_field($field_key, $label, $type = 'text')
@@ -74,9 +78,15 @@ class CSC_Admin
         $output['csc_meta_app_secret']  = isset($input['csc_meta_app_secret']) ? sanitize_text_field($input['csc_meta_app_secret']) : '';
         $output['csc_meta_api_version'] = isset($input['csc_meta_api_version']) ? sanitize_text_field($input['csc_meta_api_version']) : 'v19.0';
         $output['csc_encryption_key']   = isset($input['csc_encryption_key']) ? sanitize_text_field($input['csc_encryption_key']) : '';
+        $output['csc_github_token']     = isset($input['csc_github_token']) ? sanitize_text_field($input['csc_github_token']) : '';
+        $output['csc_github_repo']      = isset($input['csc_github_repo']) ? sanitize_text_field($input['csc_github_repo']) : 'oekonerd/customer-social-connector';
 
         if (empty($output['csc_meta_api_version'])) {
             $output['csc_meta_api_version'] = 'v19.0';
+        }
+
+        if (empty($output['csc_github_repo']) || !preg_match('#^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$#', $output['csc_github_repo'])) {
+            $output['csc_github_repo'] = 'oekonerd/customer-social-connector';
         }
 
         return $output;
@@ -110,6 +120,7 @@ class CSC_Admin
             <h1>Social Connector</h1>
             <p><strong>REST Base URL:</strong> <code><?php echo esc_html($rest_base); ?></code></p>
             <p>REST-Auth via HTTP Basic Auth: username:application_password</p>
+            <p>Plugin updates can be fetched from GitHub Releases. For private repositories, provide a GitHub token below.</p>
 
             <form method="post" action="options.php">
                 <?php

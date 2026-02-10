@@ -48,6 +48,13 @@ Default local dev credentials are intentionally limited to local usage in these 
 3. Create a new application password.
 4. Use `username:application_password` with HTTP Basic Auth.
 
+## Automatic Plugin Updates From GitHub
+
+1. In WordPress Admin go to `Settings -> Social Connector`.
+2. Set `GitHub Repository (owner/repo)` (default: `oekonerd/customer-social-connector`).
+3. For private repositories, set `GitHub Token (for updates)`.
+4. WordPress update checks will then fetch latest GitHub Release and offer update in Plugins screen.
+
 ## REST Test Examples
 
 ```bash
