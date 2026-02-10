@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Customer Social Connector
  * Description: On-prem social connector plugin for scheduled posting via REST API.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: Customer Social Connector
  */
 
@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CSC_VERSION', '0.1.0');
+define('CSC_VERSION', '0.1.1');
 define('CSC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CSC_PLUGIN_URL', plugin_dir_url(__FILE__));
 
