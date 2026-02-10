@@ -1,11 +1,17 @@
-name: CI
+name: CI & Release
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 jobs:
   php-lint:
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,3 +25,85 @@ jobs:
       - name: Lint PHP files
         run: |
           find plugin -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+
+  release:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs: php-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_tag="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+          if [ -z "$latest_tag" ]; then
+            base_version="0.1.0"
+          else
+            base_version="${latest_tag#v}"
+          fi
+
+          IFS='.' read -r major minor patch <<< "$base_version"
+          next_patch=$((patch + 1))
+          next_version="${major}.${minor}.${next_patch}"
+          next_tag="v${next_version}"
+
+          echo "version=${next_version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${next_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Update plugin version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          file="plugin/customer-social-connector.php"
+
+          sed -i "s/^ \* Version: .*/ * Version: ${version}/" "$file"
+          sed -i "s/^define('CSC_VERSION', '.*');/define('CSC_VERSION', '${version}');/" "$file"
+
+      - name: Commit and push version bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add plugin/customer-social-connector.php
+          if git diff --cached --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore(release): bump version to ${{ steps.version.outputs.version }} [skip ci]"
+            git push
+          fi
+
+      - name: Create release zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp -R plugin dist/customer-social-connector
+          (
+            cd dist
+            zip -r "customer-social-connector-${{ steps.version.outputs.tag }}.zip" customer-social-connector
+          )
+
+      - name: Create tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          files: dist/customer-social-connector-${{ steps.version.outputs.tag }}.zip
+          generate_release_notes: true
